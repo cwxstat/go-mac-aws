@@ -11,8 +11,8 @@ webhooks:
           operator: In
           values: [ "production" ]
     rules:
-      - operations: [ "CREATE" ]
-        apiGroups: [ "apps" ]
+      - operations: [ "CREATE", "UPDATE" ]
+        apiGroups: [ "" ]
         apiVersions: [ "v1" ]
         resources: [ "pods" ]
         scope: "Namespaced"
@@ -39,8 +39,8 @@ webhooks:
           operator: In
           values: [ "production" ]
     rules:
-      - operations: [ "CREATE" ]
-        apiGroups: [ "apps" ]
+      - operations: [ "CREATE","UPDATE" ]
+        apiGroups: [ "" ]
         apiVersions: [ "v1" ]
         resources: [ "pods" ]
         scope: "Namespaced"

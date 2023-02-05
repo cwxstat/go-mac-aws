@@ -104,7 +104,7 @@ func serveValidate(w http.ResponseWriter, r *http.Request) {
 
 func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
 	log.Info().Msgf("mutating deployments")
-	podResource := metav1.GroupVersionResource{Group: "apps", Version: "v1", Resource: "pods"}
+	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 	if ar.Request.Resource != podResource {
 		log.Error().Msgf("expect resource to be %s", podResource)
 		return nil
@@ -122,7 +122,7 @@ func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
 	}
 
 	pt := admission.PatchTypeJSONPatch
-	deploymentPatch := fmt.Sprintf(`[{ "op": "add", "path": "/spec/template/spec/containers/0/env", "value":  
+	deploymentPatch := fmt.Sprintf(`[{ "op": "add", "path": "/spec/containers/0/env", "value":  
 [{
             "name": "AWS_ACCESS_KEY_ID",
             "valueFrom": {
