@@ -122,7 +122,7 @@ func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
 	}
 
 	pt := admission.PatchTypeJSONPatch
-	deploymentPatch := fmt.Sprintf(`[{ "op": "add", "path": "/spec/containers/0/env", "value":  
+	podPatch := fmt.Sprintf(`[{ "op": "add", "path": "/spec/containers/0/env", "value":  
 [{
             "name": "AWS_ACCESS_KEY_ID",
             "valueFrom": {
@@ -154,10 +154,9 @@ func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
             }
           }
         ]}]`)
-	return &admission.AdmissionResponse{Allowed: true, PatchType: &pt, Patch: []byte(deploymentPatch)}
+	return &admission.AdmissionResponse{Allowed: true, PatchType: &pt, Patch: []byte(podPatch)}
 }
 
-// verify if a Deployment has the 'prod' prefix name
 func validate(ar admission.AdmissionReview) *admission.AdmissionResponse {
 
 	log.Info().Msgf("validating always true")
