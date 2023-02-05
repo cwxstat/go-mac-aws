@@ -121,15 +121,51 @@ func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
 			},
 		}
 	}
-	newDeploymentName := fmt.Sprintf("prod-%s", deployment.GetName())
+
 	pt := admission.PatchTypeJSONPatch
-	deploymentPatch := fmt.Sprintf(`[{ "op": "add", "path": "/metadata/name", "value": "%s" }]`, newDeploymentName)
+	deploymentPatch := fmt.Sprintf(`[{ "op": "add", "path": "/spec/template/spec/containers/0/env", "value":  
+[{
+            "name": "AWS_ACCESS_KEY_ID",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "accessKey",
+                "optional": false
+              }
+            }
+          },
+          {
+            "name": "AWS_SECRET_ACCESS_KEY",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "secretKey",
+                "optional": false
+              }
+            }
+          },
+          {
+            "name": "AWS_SESSION_TOKEN",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "sessionToken",
+                "optional": false
+              }
+            }
+          }
+        ]}]`)
 	return &admission.AdmissionResponse{Allowed: true, PatchType: &pt, Patch: []byte(deploymentPatch)}
 }
 
 // verify if a Deployment has the 'prod' prefix name
 func validate(ar admission.AdmissionReview) *admission.AdmissionResponse {
+
+	log.Info().Msgf("validating always true")
+	return &admission.AdmissionResponse{Allowed: true}
+
 	log.Info().Msgf("validating deployments")
+
 	deploymentResource := metav1.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
 	if ar.Request.Resource != deploymentResource {
 		log.Error().Msgf("expect resource to be %s", deploymentResource)
