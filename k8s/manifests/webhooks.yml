@@ -14,7 +14,7 @@ webhooks:
       - operations: [ "CREATE" ]
         apiGroups: [ "apps" ]
         apiVersions: [ "v1" ]
-        resources: [ "deployments" ]
+        resources: [ "pods" ]
         scope: "Namespaced"
     clientConfig:
       service:
@@ -42,7 +42,7 @@ webhooks:
       - operations: [ "CREATE" ]
         apiGroups: [ "apps" ]
         apiVersions: [ "v1" ]
-        resources: [ "deployments" ]
+        resources: [ "pods" ]
         scope: "Namespaced"
     clientConfig:
       service:

@@ -5,7 +5,7 @@ metadata:
 build:
   tagPolicy:
     customTemplate:
-      template: "v0.2.4"
+      template: "v0.2.5"
   artifacts:
   - image: us-central1-docker.pkg.dev/mchirico/public/adm
     ko: {}
