@@ -102,18 +102,17 @@ func serveValidate(w http.ResponseWriter, r *http.Request) {
 	serve(w, r, AdmitHandler(validate))
 }
 
-// adds prefix 'prod' to every incoming Deployment, example: prod-apps
 func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
 	log.Info().Msgf("mutating deployments")
-	deploymentResource := metav1.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
-	if ar.Request.Resource != deploymentResource {
-		log.Error().Msgf("expect resource to be %s", deploymentResource)
+	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
+	if ar.Request.Resource != podResource {
+		log.Error().Msgf("expect resource to be %s", podResource)
 		return nil
 	}
 	raw := ar.Request.Object.Raw
-	deployment := appsv1.Deployment{}
+	pod := corev1.Pod{}
 
-	if _, _, err := deserializer.Decode(raw, nil, &deployment); err != nil {
+	if _, _, err := deserializer.Decode(raw, nil, &pod); err != nil {
 		log.Err(err)
 		return &admission.AdmissionResponse{
 			Result: &metav1.Status{
@@ -121,15 +120,104 @@ func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
 			},
 		}
 	}
-	newDeploymentName := fmt.Sprintf("prod-%s", deployment.GetName())
+
+	log.Info().Msgf("pod: %s", pod.Name)
+
+	envIndex := 0
+	if pod.Spec.Containers[0].Env != nil {
+		log.Info().Msgf("env already exists")
+		log.Info().Msgf("length env: %d", len(pod.Spec.Containers[0].Env))
+		envIndex = len(pod.Spec.Containers[0].Env)
+		//log.Info().Msgf("env: %s", pod.Spec.Containers[0].Env)
+		//return &admission.AdmissionResponse{
+		//	Allowed: true,
+		//}
+	}
+
 	pt := admission.PatchTypeJSONPatch
-	deploymentPatch := fmt.Sprintf(`[{ "op": "add", "path": "/metadata/name", "value": "%s" }]`, newDeploymentName)
-	return &admission.AdmissionResponse{Allowed: true, PatchType: &pt, Patch: []byte(deploymentPatch)}
+	podPatch := ""
+	if envIndex == 0 {
+		podPatch = fmt.Sprintf(`[{ "op": "add", "path": "/spec/containers/0/env", "value":  
+[{
+            "name": "AWS_ACCESS_KEY_ID",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "accessKey",
+                "optional": false
+              }
+            }
+          },
+          {
+            "name": "AWS_SECRET_ACCESS_KEY",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "secretKey",
+                "optional": false
+              }
+            }
+          },
+          {
+            "name": "AWS_SESSION_TOKEN",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "sessionToken",
+                "optional": false
+              }
+            }
+          }
+        ]}]`)
+	} else {
+
+		podPatch = fmt.Sprintf(`[{ "op": "add", "path": "/spec/containers/0/env/%d", "value":  
+{
+            "name": "AWS_ACCESS_KEY_ID",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "accessKey",
+                "optional": false
+              }
+            }
+          }},
+{ "op": "add", "path": "/spec/containers/0/env/%d", "value":
+          {
+            "name": "AWS_SECRET_ACCESS_KEY",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "secretKey",
+                "optional": false
+              }
+            }
+          }},
+{ "op": "add", "path": "/spec/containers/0/env/%d", "value":
+          {
+            "name": "AWS_SESSION_TOKEN",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "sessionToken",
+                "optional": false
+              }
+            }
+          }}]`, envIndex, envIndex+1, envIndex+2)
+	}
+
+	log.Info().Msgf("pod.Spec: %v", pod.Spec)
+
+	return &admission.AdmissionResponse{Allowed: true, PatchType: &pt, Patch: []byte(podPatch)}
 }
 
-// verify if a Deployment has the 'prod' prefix name
 func validate(ar admission.AdmissionReview) *admission.AdmissionResponse {
+
+	log.Info().Msgf("validating always true")
+	return &admission.AdmissionResponse{Allowed: true}
+
 	log.Info().Msgf("validating deployments")
+
 	deploymentResource := metav1.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
 	if ar.Request.Resource != deploymentResource {
 		log.Error().Msgf("expect resource to be %s", deploymentResource)
