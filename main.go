@@ -135,7 +135,43 @@ func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
 	}
 
 	pt := admission.PatchTypeJSONPatch
-	podPatch := fmt.Sprintf(`[{ "op": "add", "path": "/spec/containers/0/env/%d", "value":  
+	podPatch := ""
+	if envIndex == 0 {
+		podPatch = fmt.Sprintf(`[{ "op": "add", "path": "/spec/containers/0/env", "value":  
+[{
+            "name": "AWS_ACCESS_KEY_ID",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "accessKey",
+                "optional": false
+              }
+            }
+          },
+          {
+            "name": "AWS_SECRET_ACCESS_KEY",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "secretKey",
+                "optional": false
+              }
+            }
+          },
+          {
+            "name": "AWS_SESSION_TOKEN",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "aws-secret",
+                "key": "sessionToken",
+                "optional": false
+              }
+            }
+          }
+        ]}]`)
+	} else {
+
+		podPatch = fmt.Sprintf(`[{ "op": "add", "path": "/spec/containers/0/env/%d", "value":  
 {
             "name": "AWS_ACCESS_KEY_ID",
             "valueFrom": {
@@ -168,6 +204,7 @@ func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
               }
             }
           }}]`, envIndex, envIndex+1, envIndex+2)
+	}
 
 	log.Info().Msgf("pod.Spec: %v", pod.Spec)
 
