@@ -121,9 +121,22 @@ func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
 		}
 	}
 
+	log.Info().Msgf("pod: %s", pod.Name)
+
+	envIndex := 0
+	if pod.Spec.Containers[0].Env != nil {
+		log.Info().Msgf("env already exists")
+		log.Info().Msgf("length env: %d", len(pod.Spec.Containers[0].Env))
+		envIndex = len(pod.Spec.Containers[0].Env)
+		//log.Info().Msgf("env: %s", pod.Spec.Containers[0].Env)
+		//return &admission.AdmissionResponse{
+		//	Allowed: true,
+		//}
+	}
+
 	pt := admission.PatchTypeJSONPatch
-	podPatch := fmt.Sprintf(`[{ "op": "add", "path": "/spec/containers/0/env", "value":  
-[{
+	podPatch := fmt.Sprintf(`[{ "op": "add", "path": "/spec/containers/0/env/%d", "value":  
+{
             "name": "AWS_ACCESS_KEY_ID",
             "valueFrom": {
               "secretKeyRef": {
@@ -132,7 +145,8 @@ func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
                 "optional": false
               }
             }
-          },
+          }},
+{ "op": "add", "path": "/spec/containers/0/env/%d", "value":
           {
             "name": "AWS_SECRET_ACCESS_KEY",
             "valueFrom": {
@@ -142,7 +156,8 @@ func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
                 "optional": false
               }
             }
-          },
+          }},
+{ "op": "add", "path": "/spec/containers/0/env/%d", "value":
           {
             "name": "AWS_SESSION_TOKEN",
             "valueFrom": {
@@ -152,8 +167,10 @@ func mutate(ar admission.AdmissionReview) *admission.AdmissionResponse {
                 "optional": false
               }
             }
-          }
-        ]}]`)
+          }}]`, envIndex, envIndex+1, envIndex+2)
+
+	log.Info().Msgf("pod.Spec: %v", pod.Spec)
+
 	return &admission.AdmissionResponse{Allowed: true, PatchType: &pt, Patch: []byte(podPatch)}
 }
 
